@@ -9,6 +9,8 @@ This tool integrates Android `adb logcat` with LLDB to provide real-time logging
 - **TTY Redirection**: Logs are redirected to the LLDB console inside Xcode.
 - **Automatic Cleanup**: Ensures that `adb logcat` is properly stopped and cleaned up when the debugging session ends.
 
+![Xcode debugging](screenshots/xcode_debugging.png)
+
 ## Usage
 
 1. **Set Up the Environment**:
