@@ -9,7 +9,7 @@ class DebugSessionListeningThread(threading.Thread):
         super().__init__(daemon=True)
         self.debugger = debugger
         self.logger = ActiveSessionLogger(tag="Listener")  # Use a distinct tag for ListeningThread
-        self.logcat_thread = AndroidEmulatorObserverThread(self.debugger, clear_history=True)
+        self.logcat_thread = AndroidEmulatorObserverThread(self.debugger)
         self.condition = threading.Condition()
         
     def wait_for_next_event(self, process):
