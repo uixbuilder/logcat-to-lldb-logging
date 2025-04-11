@@ -37,32 +37,40 @@ class AndroidEmulatorObserverThread(threading.Thread):
                 self.logger.log("No stdout from adb logcat!")
                 return
             
-            self.logger.log("Logcat started! Waiting for logs...")
-
-            bundle_id_prefix = self.debugger.GetTargetAtIndex(0).GetProcess().GetProcessInfo().GetName()
-            
-            if not bundle_id_prefix:
-                self.logger.log("No bundle ID detected. Filtering disabled.")
-            
             log_type_map = {
                 "E": "‼️",
                 "W": "⚠️",
-                "I": "",
+                "I": "  ",
                 "D": "🐞",
                 "V": "👀"
             }
-
-            log_pattern = re.compile(rf'.+([A-Z])\s+(\S+{bundle_id_prefix}.{bundle_id_prefix}):\s(.+)$')
-
+            
+            log_pattern = None
+            bundle_id_prefix = self.debugger.GetTargetAtIndex(0).GetProcess().GetProcessInfo().GetName().lower()
+            # Define the regular expression to match the application bundle ID.
+            bundle_id_pattern = re.compile(rf'([a-zA-Z0-9_.]*\.{bundle_id_prefix})')
+            
             for line in iter(self.process.stdout.readline, ''):
                 if not self.running:
                     break
-
+                
+                if log_pattern is None:
+                    # Try to find the bundle ID in the current line.
+                    match = bundle_id_pattern.search(line)
+                    if match:
+                        # Now we can define the regex for parsing ADB log messages.
+                        bundle_id = match.group(1)
+                        self.logger.log(f"Logcat started! Waiting for logs from {bundle_id}")
+                        log_pattern = re.compile(rf'.+([A-Z])\s+{bundle_id}(\.([^\s]+)?)?:\s(.+)$')
+                    else:
+                        continue
+                
+                # From this point on, the parser regex is ready to process log lines.
                 match = log_pattern.match(line)
                 if match:
-                    log_level, tag, message = match.groups()
+                    log_level, _, tag, message = match.groups()
                     log_type = log_type_map.get(log_level, "log")
-                    formatted_line = f'🤖{log_type} {message.strip()}'
+                    formatted_line = f'🤖{log_type}[{tag}]\t{message.strip()}' if tag else f'🤖\t{log_type}\t{message.strip()}'
                     self.logger.redirect(formatted_line)
         
         except Exception as e:
